@@ -1,0 +1,64 @@
+#!/bin/bash
+#SBATCH --partition=short
+#SBATCH --job-name=genseldata
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=24:00:00
+#SBATCH --mem=50gb
+#SBATCH --job-name=genseldata
+#SBATCH --error=genseldata.err
+#SBATCH --output=genseldata.out
+
+#' ---
+#' title: "Organizing dataset in GBLUPF90 programs input"
+#' author: "Amanda Botelho Alvarenga"
+#' date: "Sep, 2018"
+#' ---
+
+#Organizando the genomic data to figure out the same format of PREGSF90
+#To do the quality control
+cd /home/abotelho/GBLUPF9018/data_input/
+
+#data: AnimalID; phenotype; GC
+awk '{print $1" "$2" "$3}' /home/abotelho/GenSel18/data_input/gensel_rfi.txt > phen.txt
+sed -i -- '1d' phen.txt
+
+#ped: AnimalID; pai; mae
+awk '{print $1" ""0"" ""0"}' phen.txt > ped.txt
+
+#SNP_data: id; SNP as 0,1 and 2.. missing 5
+sed -i -- '1,9d' Ovine_Gerson_new171116_FinalReport.txt
+awk '{print $1"\t"$2"\t"$7$8"\t"$12"\t"$13}' Ovine_Gerson_new171116_FinalReport.txt > data.in # SNP, Animal, Genotipo AA, CHR,pos.
+sed '1d' data.in | sort -o data.tmp
+awk -f 4.script.awk data.tmp > data.new
+rm -f Ovine_Gerson_new171116_FinalReport.txt
+rm -f data.in
+rm -f data.tmp
+
+#SNP_map: SNP (recoding in 1 to n); chr; pos
+module load HPC/R-3.5.1
+R CMD BATCH 4.script_geno_blupf90.R
+awk '{print $1}' geno_pre.txt > id
+cut -d" " -f2- geno_pre.txt > geno_c.txt
+sed -i -- 's/ //g' geno_c.txt
+paste id geno_c.txt > geno.txt
+sed -i -- 's/\t/ /g' geno.txt
+rm -f id
+rm -f geno_pre.txt
+rm -f geno_c.txt
+rm -f data.new
+cp geno.txt genot.txt
+column -t genot.txt > geno.txt
+rm genot.txt
+cp map.txt mapp.txt
+awk '{sub("0","27",$2);print}' mapp.txt > mapp2.txt
+awk '{sub("Chr","27",$2);print}' mapp2.txt > map.txt
+
+
+rm -f mapp.txt
+rm -f mapp2.txt
+rm -f mapp3.txt
+rm -f mapp4.txt
+
+#Final files: geno.txt / phen.txt / ped.txt / map.txt
+
+exit
