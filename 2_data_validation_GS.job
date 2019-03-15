@@ -1,0 +1,33 @@
+#!/bin/bash
+#SBATCH --partition=short
+#SBATCH --job-name=genseldataval
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=24:00:00
+#SBATCH --mem=50gb
+#SBATCH --job-name=genseldataval
+#SBATCH --error=genseldataval.err
+#SBATCH --output=genseldataval.out
+
+#' ---
+#' title: "Organizing validation dataset - Genomic selection analysis"
+#' author: "Amanda Botelho Alvarenga"
+#' date: "Sep, 2018"
+#' ---
+
+#Organizing data to validate- 30% to validation group and 70% to training group
+cd /home/abotelho/GenSel18/GS/data_val
+sed '2,393d' /home/abotelho/GenSel18/data_input/gensel_rfi.txt > cab # kepting head
+sed '1d' /home/abotelho/GenSel18/data_input/gensel_rfi.txt > file # removing head
+for i in {1..100}; # making 100 repeated groups
+do
+shuf file > tmp # sorting dataset
+head -n 116 tmp > val$i # Selecting 30% of data as validation
+tail -n +$(( 116 + 1 )) tmp > trei$i # different of 30% animals of validation as training group
+cat cab trei$i > trei$i.txt
+cat cab val$i > val$i.txt
+rm -f trei$i 
+rm -f val$i 
+done
+rm -f cab
+rm -f file
+rm -f tmp
